@@ -17,7 +17,7 @@ pydantic-settings==2.3.0           # leer variables de entorno (.env)
 python-multipart==0.0.9            # para recibir formularios
 
 # ── Reportes ────────────────────────────────────────────────────
-pandas==2.2.2
+pandas
 reportlab==4.2.0
 
 # ── Dev / Testing ────────────────────────────────────────────────
