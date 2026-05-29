@@ -15,7 +15,7 @@ asyncpg                  # driver async para PostgreSQL
 pydantic
 pydantic-settings           # leer variables de entorno (.env)
 python-multipart           # para recibir formularios
-
+pydantic[email]
 # ── Reportes ────────────────────────────────────────────────────
 pandas
 reportlab
