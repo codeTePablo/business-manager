@@ -3,19 +3,22 @@ fastapi
 uvicorn[standard]
 
 # ── Autenticación JWT ───────────────────────────────────────────
-python-jose[cryptography]   # crear y verificar tokens JWT
-passlib[bcrypt]            # hashear contraseñas
-bcrypt
+# NOTA: Deja solo la que uses en tu código (mira tus imports)
+PyJWT==2.8.0
+
+passlib[bcrypt]
+bcrypt==3.2.0
 
 # ── Base de Datos ───────────────────────────────────────────────
-supabase               # cliente oficial de Supabase
-asyncpg                  # driver async para PostgreSQL
+supabase
+asyncpg
 
 # ── Validación y Settings ───────────────────────────────────────
 pydantic
-pydantic-settings           # leer variables de entorno (.env)
-python-multipart           # para recibir formularios
+pydantic-settings
+python-multipart
 pydantic[email]
+
 # ── Reportes ────────────────────────────────────────────────────
 pandas
 reportlab
@@ -23,7 +26,7 @@ reportlab
 # ── Dev / Testing ────────────────────────────────────────────────
 pytest
 pytest-asyncio
-httpx                     # cliente HTTP para tests
+httpx
 python-dotenv
 
 resend
