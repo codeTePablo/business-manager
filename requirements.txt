@@ -25,3 +25,5 @@ pytest
 pytest-asyncio
 httpx                     # cliente HTTP para tests
 python-dotenv
+
+resend
