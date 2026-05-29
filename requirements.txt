@@ -1,0 +1,27 @@
+# ── Web Framework ──────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+
+# ── Autenticación JWT ───────────────────────────────────────────
+python-jose[cryptography]==3.3.0   # crear y verificar tokens JWT
+passlib[bcrypt]==1.7.4             # hashear contraseñas
+bcrypt==4.3.0
+
+# ── Base de Datos ───────────────────────────────────────────────
+supabase==2.5.0                    # cliente oficial de Supabase
+asyncpg==0.29.0                    # driver async para PostgreSQL
+
+# ── Validación y Settings ───────────────────────────────────────
+pydantic==2.7.1
+pydantic-settings==2.3.0           # leer variables de entorno (.env)
+python-multipart==0.0.9            # para recibir formularios
+
+# ── Reportes ────────────────────────────────────────────────────
+pandas==2.2.2
+reportlab==4.2.0
+
+# ── Dev / Testing ────────────────────────────────────────────────
+pytest==8.2.2
+pytest-asyncio==0.23.7
+httpx==0.27.0                      # cliente HTTP para tests
+python-dotenv==1.0.1
