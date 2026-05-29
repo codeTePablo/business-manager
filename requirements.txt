@@ -14,8 +14,8 @@ supabase
 asyncpg
 
 # ── Validación y Settings ───────────────────────────────────────
-pydantic
-pydantic-settings
+pydantic==2.12.5
+pydantic-settings==2.13.1
 python-multipart
 pydantic[email]
 
