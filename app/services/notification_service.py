@@ -47,7 +47,7 @@ def send_iot_alert(
         if humidity_pct is not None else ""
     )
 
-   html = f"""
+    html = f"""
 <!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#f9fafb;font-family:system-ui,sans-serif;">
