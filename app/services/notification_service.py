@@ -6,14 +6,60 @@ Instalar: pip install resend
 Configurar en .env: RESEND_API_KEY=re_xxxxxxxxxxxx
 """
 
+from __future__ import annotations
+
 import resend
 from app.core.config import get_settings
+from app.db.supabase_client import get_supabase
+
 
 settings = get_settings()
 
 
-def _get_client():
+def _get_client() -> None:
+    """Configura la API key de Resend."""
     resend.api_key = settings.resend_api_key
+
+
+def get_historical_stats(business_id: str) -> dict:
+    """
+    Obtiene estadísticas globales de TODO el historial del negocio.
+    Calcula promedio, mínima, máxima de temperatura y promedio de humedad.
+    """
+    db = get_supabase()
+
+    result = (
+        db.table("sensor_readings")
+        .select("temperature_c, humidity_pct")
+        .eq("business_id", business_id)
+        .execute()
+    )
+
+    if not result.data:
+        return {}
+
+    temps = [
+        row["temperature_c"]
+        for row in result.data
+        if row.get("temperature_c") is not None
+    ]
+
+    hums = [
+        row["humidity_pct"]
+        for row in result.data
+        if row.get("humidity_pct") is not None
+    ]
+
+    if not temps:
+        return {}
+
+    return {
+        "avg_temp_c": round(sum(temps) / len(temps), 2),
+        "min_temp_c": round(min(temps), 2),
+        "max_temp_c": round(max(temps), 2),
+        "avg_humidity": round(sum(hums) / len(hums), 2) if hums else None,
+        "reading_count": len(result.data),
+    }
 
 
 def send_iot_alert(
@@ -26,9 +72,10 @@ def send_iot_alert(
     humidity_pct: float | None,
     message: str,
     avg_temp_c: float | None = None,
-    avg_humidity: float | None = None,   
+    avg_humidity: float | None = None,
     min_temp_c: float | None = None,
     max_temp_c: float | None = None,
+    reading_count: int | None = None,
 ) -> bool:
     """
     Envía un correo de alerta de temperatura/humedad al dueño del negocio.
@@ -37,15 +84,54 @@ def send_iot_alert(
     _get_client()
 
     severity_label = "CRITICA" if severity == "critical" else "ADVERTENCIA"
-    color          = "#b91c1c" if severity == "critical" else "#b45309"
-    border         = "#fecaca" if severity == "critical" else "#fde68a"
-    bg             = "#fef2f2" if severity == "critical" else "#fffbeb"
+    color = "#b91c1c" if severity == "critical" else "#b45309"
+    border = "#fecaca" if severity == "critical" else "#fde68a"
+    bg = "#fef2f2" if severity == "critical" else "#fffbeb"
 
     humidity_row = (
-        f"<tr><td style='padding:8px 12px;color:#6b7280;'>Humedad</td>"
-        f"<td style='padding:8px 12px;font-weight:600;'>{humidity_pct:.1f}%</td></tr>"
-        if humidity_pct is not None else ""
+        f"""
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Humedad</td>
+          <td style="padding:8px 12px;font-weight:600;">{humidity_pct:.1f}%</td>
+        </tr>
+        """
+        if humidity_pct is not None
+        else ""
     )
+
+    historical_block = ""
+    if avg_temp_c is not None and min_temp_c is not None and max_temp_c is not None:
+        historical_block = f"""
+        <tr>
+          <td colspan="2" style="padding:12px 12px 4px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #e5e7eb;">
+            Comportamiento histórico — Todo el historial
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Temperatura promedio</td>
+          <td style="padding:8px 12px;font-weight:600;">{avg_temp_c:.1f} °C</td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Mínima / Máxima</td>
+          <td style="padding:8px 12px;font-weight:600;">{min_temp_c:.1f} °C / {max_temp_c:.1f} °C</td>
+        </tr>
+        """
+
+        if avg_humidity is not None:
+            historical_block += f"""
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Humedad promedio</td>
+          <td style="padding:8px 12px;font-weight:600;">{avg_humidity:.1f}%</td>
+        </tr>
+            """
+
+        if reading_count is not None:
+            historical_block += f"""
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Lecturas analizadas</td>
+          <td style="padding:8px 12px;font-weight:600;">{reading_count}</td>
+        </tr>
+            """
 
     html = f"""
 <!DOCTYPE html>
@@ -80,27 +166,11 @@ def send_iot_alert(
         <tr style="border-bottom:1px solid #e5e7eb;">
           <td style="padding:8px 12px;color:#6b7280;">Temperatura</td>
           <td style="padding:8px 12px;font-weight:700;font-size:18px;color:{color};">
-            {temperature_c:.1f} °C 
+            {temperature_c:.1f} °C
           </td>
         </tr>
-        {humidity_row}{f'''
-        <tr>
-          <td colspan="2" style="padding:12px 12px 4px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #e5e7eb;">
-            Comportamiento histórico — últimas 24h
-          </td>
-        </tr>
-        <tr style="border-bottom:1px solid #e5e7eb;">
-          <td style="padding:8px 12px;color:#6b7280;">Temperatura promedio</td>
-          <td style="padding:8px 12px;font-weight:600;">{avg_temp_c:.1f} °C</td>
-        </tr>
-        <tr style="border-bottom:1px solid #e5e7eb;">
-          <td style="padding:8px 12px;color:#6b7280;">Mínima / Máxima</td>
-          <td style="padding:8px 12px;font-weight:600;">{min_temp_c:.1f} °C / {max_temp_c:.1f} °C</td>
-        </tr>
-        {"" if avg_humidity is None else f"""<tr style="border-bottom:1px solid #e5e7eb;">
-          <td style="padding:8px 12px;color:#6b7280;">Humedad promedio</td>
-          <td style="padding:8px 12px;font-weight:600;">{avg_humidity:.1f}%</td>
-        </tr>"""}''' if avg_temp_c is not None else ""}
+        {humidity_row}
+        {historical_block}
         <tr>
           <td style="padding:8px 12px;color:#6b7280;">Tipo</td>
           <td style="padding:8px 12px;">{alert_type.replace("_", " ").title()}</td>
@@ -124,12 +194,14 @@ def send_iot_alert(
 """
 
     try:
-        result = resend.Emails.send({
-            "from": "onboarding@resend.dev",
-            "to": [to_email],
-            "subject": f"[{severity_label}] Alerta de temperatura — {business_name}",
-            "html": html,
-        })
+        result = resend.Emails.send(
+            {
+                "from": "onboarding@resend.dev",
+                "to": [to_email],
+                "subject": f"[{severity_label}] Alerta de temperatura — {business_name}",
+                "html": html,
+            }
+        )
         return bool(result.get("id"))
     except Exception as e:
         print(f"[Resend] Error enviando correo: {e}")
