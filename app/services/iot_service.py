@@ -116,6 +116,8 @@ def process_reading(reading: SensorReading, business_id: str) -> dict:
                 biz = db.table("businesses").select("name").eq("id", business_id).execute()
                 biz_name = biz.data[0]["name"] if biz.data else "Negocio"
 
+                stats = get_historical_stats(business_id)
+
                 email_sent = notification_service.send_iot_alert(
                     to_email=alert_email,
                     business_name=biz_name,
@@ -125,6 +127,11 @@ def process_reading(reading: SensorReading, business_id: str) -> dict:
                     temperature_c=temp,
                     humidity_pct=hum,
                     message=message,
+                    avg_temp_c=stats.get("avg_temp_c"),
+                    avg_humidity=stats.get("avg_humidity"),
+                    min_temp_c=stats.get("min_temp_c"),
+                    max_temp_c=stats.get("max_temp_c"),
+                    reading_count=stats.get("reading_count"),
                 )
 
             db.table("iot_alerts").insert({
