@@ -25,6 +25,10 @@ def send_iot_alert(
     temperature_c: float,
     humidity_pct: float | None,
     message: str,
+    avg_temp_c: float | None = None,
+    avg_humidity: float | None = None,   
+    min_temp_c: float | None = None,
+    max_temp_c: float | None = None,
 ) -> bool:
     """
     Envía un correo de alerta de temperatura/humedad al dueño del negocio.
@@ -43,14 +47,13 @@ def send_iot_alert(
         if humidity_pct is not None else ""
     )
 
-    html = f"""
+   html = f"""
 <!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#f9fafb;font-family:system-ui,sans-serif;">
   <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:8px;
               border:1px solid #e5e7eb;overflow:hidden;">
 
-    <!-- Header -->
     <div style="background:{color};padding:24px 28px;">
       <p style="margin:0;color:#fff;font-size:11px;font-weight:700;
                 letter-spacing:.1em;text-transform:uppercase;">AbastOS — Alerta IoT</p>
@@ -59,7 +62,6 @@ def send_iot_alert(
       </p>
     </div>
 
-    <!-- Body -->
     <div style="padding:28px;">
       <div style="background:{bg};border:1px solid {border};border-radius:6px;
                   padding:16px 20px;margin-bottom:20px;">
@@ -78,10 +80,27 @@ def send_iot_alert(
         <tr style="border-bottom:1px solid #e5e7eb;">
           <td style="padding:8px 12px;color:#6b7280;">Temperatura</td>
           <td style="padding:8px 12px;font-weight:700;font-size:18px;color:{color};">
-            {temperature_c:.1f} °C
+            {temperature_c:.1f} °C 
           </td>
         </tr>
-        {humidity_row}
+        {humidity_row}{f'''
+        <tr>
+          <td colspan="2" style="padding:12px 12px 4px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-top:1px solid #e5e7eb;">
+            Comportamiento histórico — últimas 24h
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Temperatura promedio</td>
+          <td style="padding:8px 12px;font-weight:600;">{avg_temp_c:.1f} °C</td>
+        </tr>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Mínima / Máxima</td>
+          <td style="padding:8px 12px;font-weight:600;">{min_temp_c:.1f} °C / {max_temp_c:.1f} °C</td>
+        </tr>
+        {"" if avg_humidity is None else f"""<tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:8px 12px;color:#6b7280;">Humedad promedio</td>
+          <td style="padding:8px 12px;font-weight:600;">{avg_humidity:.1f}%</td>
+        </tr>"""}''' if avg_temp_c is not None else ""}
         <tr>
           <td style="padding:8px 12px;color:#6b7280;">Tipo</td>
           <td style="padding:8px 12px;">{alert_type.replace("_", " ").title()}</td>
@@ -94,7 +113,6 @@ def send_iot_alert(
       </p>
     </div>
 
-    <!-- Footer -->
     <div style="padding:16px 28px;border-top:1px solid #e5e7eb;background:#f9fafb;">
       <p style="margin:0;font-size:11px;color:#9ca3af;">
         AbastOS IoT Monitor — notificacion automatica
