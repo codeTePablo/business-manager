@@ -283,3 +283,45 @@ def update_config(business_id: str, data: dict) -> IotConfigOut:
         db.table("iot_config").insert({"business_id": business_id, **data}).execute()
 
     return get_config(business_id)
+
+
+def get_hourly_averages(business_id: str, hours: int = 24) -> list:
+    """Promedio de temperatura y humedad por hora — últimas N horas."""
+    db = get_supabase()
+
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+
+    result = (
+        db.table("sensor_readings")
+        .select("temperature_c, humidity_pct, recorded_at")
+        .eq("business_id", business_id)
+        .gte("recorded_at", cutoff)
+        .order("recorded_at")
+        .execute()
+    )
+
+    if not result.data:
+        return []
+
+    # Agrupar por hora
+    from collections import defaultdict
+    buckets: dict = defaultdict(list)
+    for row in result.data:
+        hour = row["recorded_at"][:13]   # "2026-06-05T14"
+        buckets[hour].append(row)
+
+    averages = []
+    for hour, readings in sorted(buckets.items()):
+        temps = [r["temperature_c"] for r in readings]
+        hums  = [r["humidity_pct"]  for r in readings if r["humidity_pct"] is not None]
+        averages.append({
+            "hour":           hour,
+            "avg_temp_c":     round(sum(temps) / len(temps), 2),
+            "min_temp_c":     round(min(temps), 2),
+            "max_temp_c":     round(max(temps), 2),
+            "avg_humidity":   round(sum(hums) / len(hums), 2) if hums else None,
+            "reading_count":  len(readings),
+        })
+
+    return averages
